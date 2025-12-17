@@ -208,5 +208,5 @@ __marimo__/
 
 # local data files
 
-data/
-database/
+data/shootings.csv
+database/crime_data.db
