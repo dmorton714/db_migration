@@ -1,12 +1,10 @@
-<script setup></script>
+<script setup>
+import CorePageDesign from './components/corePageDesign.vue';
+
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-    This is the landing page 
-  </p>
+  <CorePageDesign />
 </template>
 
 <style scoped></style>
