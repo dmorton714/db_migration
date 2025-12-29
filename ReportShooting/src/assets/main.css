@@ -1,0 +1,10 @@
+:root {
+  --lou-navy: #002d62;
+  --lou-gold: #c5a253;
+  --lou-light: #f5f5f5;
+  --lou-dark: #111;
+}
+
+html, body, h1, h2, h3, h4, h5, h6, p, a, li, span, div {
+  font-family: "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
