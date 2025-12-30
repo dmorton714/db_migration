@@ -1,29 +1,169 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+
+// --------------------
+// API & State
+// --------------------
+const API_BASE = 'http://localhost:3000'
+
+const shootings = ref([])
+const years = ref([])
+const selectedYear = ref(null)
+const shootingTypes = ref([])
+const neighborhoodsData = ref([])
+
+const isLoading = ref(false)
+const error = ref(null)
 
 
-// Mock shootings dataset (replace later with real data)
-const shootings = [
-  { id: 1, date: '2025-01-02', neighborhood: 'Russell', injured: 1, fatal: 0 },
-  { id: 2, date: '2025-01-04', neighborhood: 'Portland', injured: 2, fatal: 1 },
-  { id: 3, date: '2025-01-05', neighborhood: 'Smoketown', injured: 0, fatal: 1 },
-  { id: 4, date: '2025-01-06', neighborhood: 'Shawnee', injured: 1, fatal: 0 },
-]
+// --------------------
+// For Table
+// --------------------
+const searchQuery = ref('')        // filter by neighborhood
+const currentPage = ref(1)         // current page
+const pageSize = ref(10)            // rows per page
 
-// KPIs
-const totalIncidents = shootings.length
 
-const totalFatalities = computed(() =>
-  shootings.reduce((sum, s) => sum + s.fatal, 0)
+const filteredShootings = computed(() => {
+  if (!searchQuery.value) return shootings.value
+  return shootings.value.filter(row =>
+    row.neighborhood.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
+
+const totalPages = computed(() =>
+  Math.ceil(filteredShootings.value.length / pageSize.value)
 )
 
-const totalInjured = computed(() =>
-  shootings.reduce((sum, s) => sum + s.injured, 0)
-)
+const paginatedShootings = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredShootings.value.slice(start, end)
+})
 
-const neighborhoodsImpacted = computed(() =>
-  new Set(shootings.map(s => s.neighborhood)).size
-)
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+
+// On year change or mounted
+onMounted(() => loadShootings(selectedYear.value))
+watch(selectedYear, (newYear) => loadShootings(newYear))
+
+
+// --------------------
+// Fetch list of years
+// --------------------
+async function loadAvailableYears() {
+  try {
+    const res = await fetch(`${API_BASE}/totalincidents`)
+    const data = await res.json()
+    years.value = data.map(r => r.year)
+    selectedYear.value = years.value.at(-1) // default to latest year
+  } catch (e) {
+    error.value = "Failed to load years list"
+  }
+}
+
+// --------------------
+// Fetch shootings for selected year
+// --------------------
+async function loadShootings() {
+  if (!selectedYear.value) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const res = await fetch(`${API_BASE}/shootings?year=${selectedYear.value}`)
+    shootings.value = await res.json()
+  } catch (e) {
+    error.value = "Failed to load shootings data"
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function loadShootingTypes() {
+  try {
+    const res = await fetch('http://localhost:3000/shootingtype')
+    shootingTypes.value = await res.json()
+  } catch (e) {
+    console.error('Failed to load shooting type data', e)
+  }
+}
+
+async function loadNeighborhoods() {
+  try {
+    const res = await fetch(`${API_BASE}/neighborhoods`)
+    neighborhoodsData.value = await res.json()
+  } catch (e) {
+    console.error('Failed to load neighborhoods data', e)
+  }
+}
+
+// --------------------
+// Lifecycle & Watch
+// --------------------
+onMounted(async () => {
+  await loadAvailableYears()
+  await loadShootings()
+})
+
+onMounted(() => loadShootingTypes())
+onMounted(() => loadNeighborhoods())
+
+watch(selectedYear, () => loadShootings())
+
+// --------------------
+// Computed KPIs
+// --------------------
+const totalIncidents = computed(() => shootings.value.length)
+
+const totalFatalities = computed(() => {
+  if (!selectedYear.value) return 0
+  const row = shootingTypes.value.find(
+    r => r.year === selectedYear.value && r.Crime_Type === 'Homicide'
+  )
+  return row ? row.total_shootings : 0
+})
+
+const totalInjured = computed(() => {
+  if (!selectedYear.value) return 0
+  const row = shootingTypes.value.find(
+    r => r.year === selectedYear.value && r.Crime_Type === 'Non-Fatal Shooting'
+  )
+  return row ? row.total_shootings : 0
+})
+
+const neighborhoodsImpacted = computed(() => {
+  if (!selectedYear.value) return 0
+  const row = neighborhoodsData.value.find(r => r.year === selectedYear.value)
+  return row ? row.neighborhoods_impacted : 0
+})
+
+// neighborhood breakdown
+const neighborhoodData = ref([])
+
+async function loadNeighborhoodBreakdown(year) {
+  try {
+    const res = await fetch(`http://localhost:3000/neighborhood-breakdown?year=${year}`)
+    neighborhoodData.value = await res.json()
+  } catch (e) {
+    console.error("Failed to load neighborhood breakdown", e)
+  }
+}
+
+// On mounted or year change
+onMounted(() => loadNeighborhoodBreakdown(selectedYear.value))
+watch(selectedYear, (newYear) => loadNeighborhoodBreakdown(newYear))
+
+
+
 </script>
 
 <template>
@@ -32,9 +172,19 @@ const neighborhoodsImpacted = computed(() =>
     <!-- Header -->
     <header class="header">
       <h1>Louisville Shooting Dashboard</h1>
-      <p>Mock data preview — replace with city records later</p>
-    </header>
 
+      <div class="year-select">
+        <label for="year">Select Year:</label>
+        <select id="year" v-model="selectedYear">
+          <option v-for="year in years" :key="year" :value="year">
+            {{ year }}
+          </option>
+        </select>
+      </div>
+
+      <p v-if="isLoading">Loading data…</p>
+      <p v-if="error" style="color:red">{{ error }}</p>
+    </header>
 
     <!-- KPI CARDS -->
     <section class="kpi-grid">
@@ -59,54 +209,68 @@ const neighborhoodsImpacted = computed(() =>
       </div>
     </section>
 
-
+    <!-- Content Grid -->
     <section class="content-grid">
 
-
+      <!-- Recent Incidents Table -->
       <div class="panel">
-        <h2>Recent Incidents</h2>
+          <h2>Recent Incidents</h2>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Neighborhood</th>
-              <th>Injured</th>
-              <th>Fatal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in shootings" :key="row.id">
-              <td>{{ row.date }}</td>
-              <td>{{ row.neighborhood }}</td>
-              <td>{{ row.injured }}</td>
-              <td>{{ row.fatal }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          <!-- Search -->
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Search by neighborhood"
+            class="search-box"
+          />
 
+          <!-- Table -->
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Address</th>
+                <th>Crime Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in paginatedShootings" :key="row.id">
+                <td>{{ row.date }}</td>
+                <td>{{ row.neighborhood }}</td>
+                <td>{{ row.crime_type }}</td>
+              </tr>
+            </tbody>
+          </table>
 
+          <!-- Pagination -->
+          <div class="pagination">
+            <button @click="prevPage" :disabled="currentPage === 1">Prev</button>
+            <span>Page {{ currentPage }} of {{ totalPages }}</span>
+            <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+          </div>
+        </div>
+
+      <!-- Map placeholder -->
       <div class="panel map">
         <h2>Map — Hotspot View</h2>
         <p>Map or geospatial visualization will go here.</p>
       </div>
 
-
+      <!-- Trend placeholder -->
       <div class="panel">
         <h2>Trend Over Time</h2>
-        <p>Chart placeholder (we can wire Chart.js or ECharts later).</p>
+        <p>Chart placeholder (Chart.js / ECharts can be wired later).</p>
       </div>
 
-
+      <!-- Neighborhood breakdown -->
       <div class="panel">
         <h2>Neighborhood Breakdown</h2>
-
         <ul class="neighborhood-list">
-          <li v-for="row in shootings" :key="row.id">
+          <li v-for="row in neighborhoodData" :key="row.neighborhood">
             <strong>{{ row.neighborhood }}</strong> —
-            Injured: {{ row.injured }},
-            Fatal: {{ row.fatal }}
+            Injured: {{ row.Injured }},
+            Fatal: {{ row.Fatal }},
+            AI: {{ row.AI }}
           </li>
         </ul>
       </div>
@@ -130,6 +294,19 @@ const neighborhoodsImpacted = computed(() =>
 
 .header p {
   opacity: .7;
+}
+
+.year-select {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  font-weight: 600;
+}
+
+select {
+  padding: .35rem .5rem;
+  border-radius: 6px;
+  border: 2px solid var(--lou-navy);
 }
 
 .kpi-grid {
@@ -201,7 +378,49 @@ td {
 }
 
 .neighborhood-list {
-  padding-left: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding-left: 0;
+  list-style: none;
   line-height: 1.6;
 }
+
+.neighborhood-list li {
+  background: var(--lou-light);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+
+.search-box {
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 70%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.pagination {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination button {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--lou-navy);
+  background: var(--lou-light);
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
 </style>

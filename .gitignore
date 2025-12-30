@@ -211,3 +211,6 @@ __marimo__/
 data/shootings.csv
 database/crime_data.db
 .vscode
+Backend/package-lock.json
+Backend/package.json
+Backend/node_modules
