@@ -8,11 +8,13 @@ const PORT = 3000;
 
 app.use(cors());
 
+
 // Connect to database
 const db = new sqlite3.Database("../database/crime_data.db", err => {
   if (err) console.error("DB error:", err.message);
   else console.log("Connected to DB");
 });
+
 
 // Routes
 app.get("/totalincidents", (req, res) => {
@@ -27,6 +29,7 @@ app.get("/totalincidents", (req, res) => {
     res.json(rows);
   });
 });
+
 
 // KPI Cards
 app.get("/shootingtype", (req, res) => {
@@ -63,6 +66,7 @@ app.get("/neighborhoods", (req, res) => {
     res.json(rows);
   });
 });
+
 
 // Table
 app.get("/shootings", (req, res) => {
@@ -110,6 +114,66 @@ app.get("/neighborhood-breakdown", (req, res) => {
   `;
 
   db.all(sql, [year], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+
+// monthly groupby for plot
+app.get("/shootingsbymonth", (req, res) => {
+  const { crime_type } = req.query; // optional filter
+
+  const sql = `
+    SELECT
+      strftime('%Y', Date) AS year,
+      strftime('%m', Date) AS month,
+      Crime_Type,
+      COUNT(*) AS total_shootings
+    FROM CaseInfo
+    ${crime_type ? "WHERE Crime_Type = ?" : ""}
+    GROUP BY year, month, Crime_Type
+    ORDER BY year, month;
+  `;
+
+  const params = crime_type ? [crime_type] : [];
+
+  db.all(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+
+// map plot
+app.get("/shootingsmap", (req, res) => {
+  const { year, crime_type } = req.query
+  if (!year) return res.status(400).json({ error: "Year query parameter required" });
+
+  let sql = `
+    SELECT 
+      c.Date AS date,
+      a.Address AS neighborhood,
+      c.Crime_Type AS crime_type,
+      g.Latitude AS lat,
+      g.Longitude AS lon,
+      c.ObjectId AS id
+    FROM CaseInfo c
+    LEFT JOIN Address a ON c.ObjectId = a.ObjectId
+    LEFT JOIN Geo g ON c.ObjectId = g.ObjectId
+    WHERE strftime('%Y', c.Date) = ?
+  `;
+
+  const params = [year];
+
+  if (crime_type) {
+    sql += " AND c.Crime_Type = ?";
+    params.push(crime_type);
+  }
+
+  sql += " ORDER BY c.Date DESC;";
+
+  db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });

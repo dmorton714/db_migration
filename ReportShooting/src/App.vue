@@ -7,7 +7,6 @@
 
       <div class="brand">
         <h1>Louisville Shooting Dashboard</h1>
-        <p class="subtitle">City Data — Mock Preview</p>
       </div>
 
       <div class="links">
@@ -23,21 +22,21 @@
 
 <style scoped>
 .nav {
-  background: var(--lou-navy);
-  color: white;
+  background: var(--lou-gold);
+  color: var(--lou-navy);
   width: 100%;
-  padding: 1rem 1.5rem;
+  padding: 10px;
   box-shadow: 0 6px 14px rgba(0,0,0,.25);
 }
 
 .nav-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .brand h1 {
