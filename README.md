@@ -1,30 +1,162 @@
-# Database Migration
-
-## Purpose
-This repository provides a chance for students to work on a project migrating a database from local SQLite database to MySQL database via a Docker Container.   
-
-To make this project as real as possible The database will feed several different things and the students will have to insure that each service is back up and running correctly. 
-
-## How to run
-- 
-- 
+# Database Migration Project
 
 
-## What We’ll Explore
-- 
-- 
+A full-stack data project that ingests incident data, builds a local database via Python ETL, exposes an API through a Node.js backend, and visualizes insights in a Vue.js dashboard.
 
-## Project Goals
--
--
+---
+
+## Project Structure
+
+| Folder            | Purpose                                                                         |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `dataPortion/`    | Python ETL pipeline (`etlPipeline.py`) — fetches and builds the SQLite database |
+| `Backend/`        | Node.js API server (`server.js`)                                                |
+| `ReportShooting/` | Vue.js frontend dashboard                                                       |
+
+SQLite database location: `Backend/database/crime_data.db`
+
+---
+
+## Prerequisites
+
+* **Node.js** (v18+) and **npm** or **yarn**
+* **Python 3.9+** and **pip**
+* **virtualenv** for Python environment
+
+---
+
+## 1) Run the Python ETL Pipeline (Build the Database)
+
+This generates/updates the SQLite database.
+
+```bash
+cd dataPortion
+```
+
+(recommended):
+
+```bash
+python3 -m venv venv
+source venv/bin/activate   # Mac / Linux
+# or on Windows
+venv\Scripts\activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the ETL script:
+
+```bash
+python etlPipeline.py
+```
+
+Output: `Backend/database/crime_data.db`
+
+---
+
+## 2) Start the Node.js Backend
+
+```bash
+cd Backend
+npm install
+```
+
+Start the backend server:
+
+```bash
+node server.js
+```
+
+Default server URL:
+
+```
+http://localhost:3000
+```
+
+> The server reads the SQLite database `crime_data.db` and exposes API endpoints.
+
+---
+
+## 3) Start the Vue.js Dashboard
+
+```bash
+cd ReportShooting
+npm install
+npm run dev
+```
+
+Default frontend URL:
+
+```
+http://localhost:5173
+```
+
+The dashboard expects the backend API to be running at `http://localhost:3000`.
+If your backend runs on a different host/port, update the environment variable:
+
+```
+VITE_API_URL=http://localhost:3000
+```
+
+---
+
+## Typical Workflow
+
+1️⃣ Run Python ETL to build/update the database.
+2️⃣ Start Node backend to serve the API.
+3️⃣ Start Vue frontend to view the dashboard.
+
+---
+
+## API Overview
+
+The backend serves the following routes (examples):
+
+* `GET /shootings?year=YYYY` — List shootings for a given year
+* `GET /totalincidents` — Returns list of years / total incidents
+* `GET /shootingtype` — Returns aggregated shooting types
+* `GET /neighborhoods` — Returns neighborhoods impacted
+* `GET /neighborhood-breakdown?year=YYYY` — Breakdown by neighborhood
 
 
-### References
--
--
+---
 
-## Always Utilize a Virtual Environment
+## Optional Commands
 
+Re-run ETL pipeline after new data:
+
+```bash
+cd dataPortion
+python etlPipeline.py
+```
+
+Restart backend:
+
+```bash
+cd Backend
+npm run dev
+```
+
+Restart frontend:
+
+```bash
+cd ReportShooting
+npm run dev
+```
+
+---
+
+## Notes
+
+* Database: SQLite, stored at `Backend/database/crime_data.db`
+* Frontend expects the backend API running at `http://localhost:3000`
+* Recommended workflow: ETL → Backend → Frontend
+
+---
 
 ### Virtual Environment Commands
 | Command | Linux/Mac | GitBash |
