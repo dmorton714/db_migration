@@ -167,3 +167,13 @@ npm run dev
 | Deactivate | `deactivate` | `deactivate` |
 
 
+## Docker Desktop 
+
+- Download Docker Desktop from [Here.](https://www.docker.com/products/docker-desktop/)
+- Install the application. 
+- 
+- 
+- 
+- 
+- 
+- 

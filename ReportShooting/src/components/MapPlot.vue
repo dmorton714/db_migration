@@ -2,13 +2,15 @@
 import { ref, onMounted, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+import 'leaflet.markercluster'
 
-// --- Refs ---
 const mapContainer = ref(null)
 let mapInstance = null
 let markerLayer = null
 
-// --- Dropdown state ---
+// Dropdowns
 const years = ref([])
 const selectedYear = ref(null)
 
@@ -18,7 +20,6 @@ const selectedMonth = ref("Jan")
 const crimeTypes = ref(["All"])
 const selectedCrimeType = ref("All")
 
-// --- Shooting data ---
 const shootings = ref([])
 
 // --- Load shootings ---
@@ -34,22 +35,25 @@ async function loadShootingData() {
     const res = await fetch(url)
     const data = await res.json()
 
-    // Month filter
+    console.log("API returned", data.length, "rows")
+
+    // Month filter (parse YYYY-MM-DD)
     shootings.value =
       selectedMonth.value === 'All'
         ? data
         : data.filter(d => {
-            const monthIndex = new Date(d.date).getMonth() // 0-based
-            return monthIndex === months.value.indexOf(selectedMonth.value)
+            const month = parseInt(d.date.slice(5, 7), 10)
+            return month === months.value.indexOf(selectedMonth.value) + 1
           })
 
+    console.log("Month-filtered shootings:", shootings.value.length)
     plotMarkers()
   } catch (err) {
     console.error("Failed to load shooting data", err)
   }
 }
 
-// --- Initialize Leaflet map ---
+// --- Initialize map ---
 function initMap() {
   mapInstance = L.map(mapContainer.value).setView([38.2527, -85.7585], 11)
 
@@ -58,9 +62,11 @@ function initMap() {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(mapInstance)
 
-  markerLayer = L.layerGroup().addTo(mapInstance)
+  // Initialize marker cluster group
+  markerLayer = L.markerClusterGroup({maxClusterRadius: 30})
+  mapInstance.addLayer(markerLayer)
 
-  loadShootingData()
+  loadShootingData() 
 }
 
 // --- Plot markers ---
@@ -70,16 +76,27 @@ function plotMarkers() {
   markerLayer.clearLayers()
 
   shootings.value.forEach(s => {
-    if (s.lat && s.lon) {
-      L.marker([s.lat, s.lon])
-        .bindPopup(`
-          <strong>${s.crime_type}</strong><br/>
-          ${s.neighborhood || 'Unknown'}<br/>
-          ${s.date}
-        `)
-        .addTo(markerLayer)
-    }
+    const lat = parseFloat(s.lat)
+    const lon = parseFloat(s.lon)
+    if (isNaN(lat) || isNaN(lon)) return
+
+    const jitter = 0.0001
+    const latJitter = lat + (Math.random() - 0.5) * jitter
+    const lonJitter = lon + (Math.random() - 0.5) * jitter
+
+    const marker = L.marker([latJitter, lonJitter])
+      .bindPopup(`
+        <strong>${s.crime_type}</strong><br/>
+        ${s.neighborhood || 'Unknown'}<br/>
+        ${s.date}
+      `)
+
+    markerLayer.addLayer(marker)
   })
+
+  if (markerLayer.getLayers().length > 0) {
+    mapInstance.fitBounds(markerLayer.getBounds())
+  }
 }
 
 // --- Load crime types ---
@@ -93,10 +110,10 @@ async function loadCrimeTypes() {
   }
 }
 
-// --- Watchers ---
+// Watchers
 watch([selectedYear, selectedMonth, selectedCrimeType], loadShootingData)
 
-// --- onMounted ---
+// onMounted
 onMounted(async () => {
   try {
     const res = await fetch('http://localhost:3000/totalincidents')

@@ -7,12 +7,14 @@
       <div class="card">
         <h1>About This Dashboard</h1>
         <p>
-          This is a placeholder About page. Here we will describe the Louisville Shooting Dashboard,
-          its data sources, methodology, and provide context for the city's public safety statistics.
+          This is a Louisville Shooting Dashboard, providing insights into the city's public safety statistics.
+          It highlights key metrics such as total shooting incidents, injuries, fatalities, and affected neighborhoods.
+          The dashboard aims to inform the public and policymakers by visualizing trends and patterns in
+          shooting incidents over time.
         </p>
 
         <p>
-          Currently using mock data. Real city records and visualizations will be connected here in future updates.
+          Using data from real city records from the Louisville Open Data Portal.
         </p>
       </div>
     </main>
@@ -36,6 +38,7 @@
 
 .card {
   background-color: white;
+  border-bottom: 6px solid var(--lou-gold);
   border-left: 6px solid var(--lou-gold);
   border-radius: 12px;
   padding: 2rem 1.5rem;

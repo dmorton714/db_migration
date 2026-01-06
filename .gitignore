@@ -214,3 +214,4 @@ database/crime_data.db
 Backend/package-lock.json
 Backend/package.json
 Backend/node_modules
+.DS_Store
