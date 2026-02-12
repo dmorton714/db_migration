@@ -15,8 +15,10 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "chart": "^0.1.2",
     "chart.js": "^4.5.1",
     "chartjs": "^0.3.24",
+    "js": "^0.1.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "pinia": "^3.0.4",

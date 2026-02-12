@@ -215,3 +215,5 @@ Backend/package-lock.json
 Backend/package.json
 Backend/node_modules
 .DS_Store
+
+node_modules
