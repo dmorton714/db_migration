@@ -1,7 +1,7 @@
 # Database Migration Project
 
 
-A full-stack data project that ingests incident data, builds a local database via Python ETL, exposes an API through a Node.js backend, and visualizes insights in a Vue.js dashboard.
+A full-stack data project that ingests incident data, builds a local database via Python ETL, exposes an API through a Node.js backend, and visualizes insights in a Vue.js dashboard. The goal is to switch from a SQLite database to a MySql database. 
 
 ---
 
@@ -12,6 +12,7 @@ A full-stack data project that ingests incident data, builds a local database vi
 | `dataPortion/`    | Python ETL pipeline (`etlPipeline.py`) — fetches and builds the SQLite database |
 | `Backend/`        | Node.js API server (`server.js`)                                                |
 | `ReportShooting/` | Vue.js frontend dashboard                                                       |
+| `MySQL`           | Docker container for the MySQL database                                         |
 
 SQLite database location: `Backend/database/crime_data.db`
 
@@ -19,9 +20,9 @@ SQLite database location: `Backend/database/crime_data.db`
 
 ## Prerequisites
 
-* **Node.js** (v18+) and **npm** or **yarn**
-* **Python 3.9+** and **pip**
-* **virtualenv** for Python environment
+* **Node.js** (v18+) and **npm**
+* **Python 3.9+** 
+* **virtualenv**
 
 ---
 
@@ -125,30 +126,6 @@ The backend serves the following routes (examples):
 
 ---
 
-## Optional Commands
-
-Re-run ETL pipeline after new data:
-
-```bash
-cd dataPortion
-python etlPipeline.py
-```
-
-Restart backend:
-
-```bash
-cd Backend
-npm run dev
-```
-
-Restart frontend:
-
-```bash
-cd ReportShooting
-npm run dev
-```
-
----
 
 ## Notes
 
@@ -171,9 +148,7 @@ npm run dev
 
 - Download Docker Desktop from [Here.](https://www.docker.com/products/docker-desktop/)
 - Install the application. 
-- 
-- 
-- 
-- 
-- 
-- 
+- Launch the application 
+  - It will run in the background and has to be open
+- Navigate tot he MySQL folder 
+- Follow the instructions in the readme file
