@@ -10,7 +10,7 @@ Much of this is new to you, so the first step is to get everything running. Inst
 
 # Second Step 
 
-Switch to branch "X" and this contains the docker container with the MySQL files. 
+Switch to branch "docker" and this contains the docker container with the MySQL files. 
 
 - If you haven't already download docker desktop 
 - Then follow the directions in the README.md file and docker_notes.md
@@ -18,7 +18,9 @@ Switch to branch "X" and this contains the docker container with the MySQL files
 
 # Third Step 
 
-Now we get into the meat of the project! You not have to figure out how you want to import the data into the DB. You can use a language you know already or even use the docker terminal in MySQL to load in the data. 
+Now we get into the meat of the project! 
+
+You now have to figure out how you want to import the data into the DB. You can use a language you know already or even use the docker terminal in MySQL to load in the data. 
 You will want to keep the same tables we have in the SQLite db. 
 - If you do it in python you can update the ETL pipeline later and have the process automated! 
 - You can also automate this other ways too. You will just have to figure out that part on your own. 

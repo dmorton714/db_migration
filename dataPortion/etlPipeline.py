@@ -1,6 +1,7 @@
 from apiCall import fetch_gun_violence_data
 from prepData import prepare_crime_data
 from dbBuilder import insert_crime_data_to_sqlite
+from mysql_injection import load_dataframe_to_mysql
 
 
 def run_full_pipeline(csv_dir='data',
@@ -21,6 +22,7 @@ def run_full_pipeline(csv_dir='data',
 
     print("STEP 3: Load")
     insert_crime_data_to_sqlite(clean_data, db_path)
+    load_dataframe_to_mysql(clean_data)
 
     print("Pipeline complete!")
 
