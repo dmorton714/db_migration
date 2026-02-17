@@ -5,9 +5,9 @@ import DataTable from '@/components/DataTable.vue'
 import KpiCards from '@/components/KpiCards.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 
-// --------------------
+
 // API & State
-// --------------------
+
 const API_BASE = 'http://localhost:3000'
 
 const shootings = ref([])
@@ -22,9 +22,9 @@ const error = ref(null)
 // for plot
 const selectedPlotYear = ref("2025")
 
-// --------------------
+
 // Fetch list of years
-// --------------------
+
 async function loadAvailableYears() {
   try {
     const res = await fetch(`${API_BASE}/totalincidents`)
@@ -36,9 +36,9 @@ async function loadAvailableYears() {
   }
 }
 
-// --------------------
+
 // Fetch shootings for selected year
-// --------------------
+
 async function loadShootings() {
   if (!selectedYear.value) return
   isLoading.value = true
@@ -83,9 +83,9 @@ async function loadNeighborhoodBreakdown(year) {
   }
 }
 
-// --------------------
+
 // Lifecycle & Watch
-// --------------------
+
 onMounted(async () => {
   await loadAvailableYears()
   await loadShootings()
@@ -99,9 +99,9 @@ watch(selectedYear, (newYear) => {
   loadNeighborhoodBreakdown(newYear)
 })
 
-// --------------------
+
 // Computed KPIs
-// --------------------
+
 const totalIncidents = computed(() => shootings.value.length)
 
 const totalFatalities = computed(() => {
