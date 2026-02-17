@@ -3,6 +3,8 @@
 
 A full-stack data project that ingests incident data, builds a local database via Python ETL, exposes an API through a Node.js backend, and visualizes insights in a Vue.js dashboard. The goal is to switch from a SQLite database to a MySql database. 
 
+![Dashboard](images/Screenshot.png)
+
 ---
 
 ## Project Structure
