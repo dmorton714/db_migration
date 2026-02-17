@@ -38,9 +38,9 @@ Find all the queries in the backend and replicate them in the in MySQL.
 
 # Final Step! 
 
-Switch to `X` branch! 
+Switch to `migration` branch! 
 
 - Insert the queries into the spaces in the backend. 
-- Turn on and off the feature flag noted `somewhere in the code` 
+- Turn "on" and "off" the feature flag noted
   - This will switch from the SQLite and MySQL database. 
   - This is used in production code to test new features and keep the old one easily accessible in-case things are broken etc. 
