@@ -1,5 +1,19 @@
 # Database Migration Project
 
+## Quick Start (run the app)
+
+The SQLite database is already built — you don't need to re-run the ETL pipeline unless you're refreshing the underlying data.
+
+```bash
+./run.sh api      # start the backend API   (foreground) — http://localhost:3000
+./run.sh web      # start the frontend dev server (foreground) — http://localhost:5173
+./run.sh build    # build the frontend for production
+./run.sh etl      # pull data and rebuild the SQLite database
+./run.sh start    # start api + web together in the background, logging to .run/
+./run.sh stop     # stop the background api + web
+```
+
+---
 
 A full-stack data project that ingests incident data, builds a local database via Python ETL, exposes an API through a Node.js backend, and visualizes insights in a Vue.js dashboard. The goal is to switch from a SQLite database to a MySql database. 
 
@@ -11,12 +25,12 @@ A full-stack data project that ingests incident data, builds a local database vi
 
 | Folder            | Purpose                                                                         |
 | ----------------- | ------------------------------------------------------------------------------- |
-| `dataPortion/`    | Python ETL pipeline (`etlPipeline.py`) — fetches and builds the SQLite database |
+| `ETLpipeline/`    | Python ETL pipeline (`etlPipeline.py`) — fetches and builds the SQLite database |
 | `Backend/`        | Node.js API server (`server.js`)                                                |
 | `ReportShooting/` | Vue.js frontend dashboard                                                       |
 | `MySQL`           | Docker container for the MySQL database                                         |
 
-SQLite database location: `Backend/database/crime_data.db`
+SQLite database location: `database/crime_data.db`
 
 ---
 
@@ -28,15 +42,17 @@ SQLite database location: `Backend/database/crime_data.db`
 
 ---
 
-## 1) Run the Python ETL Pipeline (Build the Database)
+## Rebuilding the Database (optional)
 
-This generates/updates the SQLite database.
+This generates/updates the SQLite database. Only needed when refreshing the underlying incident data — the app doesn't require this on every run.
 
 ```bash
-cd dataPortion
+./run.sh etl
 ```
 
-(recommended):
+Or run it manually from the repo root:
+
+Set up a virtualenv (recommended, one-time):
 
 ```bash
 python3 -m venv venv
@@ -54,14 +70,14 @@ pip install -r requirements.txt
 Run the ETL script:
 
 ```bash
-python etlPipeline.py
+python ETLpipeline/etlPipeline.py
 ```
 
-Output: `Backend/database/crime_data.db`
+Output: `database/crime_data.db`
 
 ---
 
-## 2) Start the Node.js Backend
+## Start the Node.js Backend
 
 ```bash
 cd Backend
@@ -84,7 +100,7 @@ http://localhost:3000
 
 ---
 
-## 3) Start the Vue.js Dashboard
+## Start the Vue.js Dashboard
 
 ```bash
 cd ReportShooting
@@ -109,9 +125,9 @@ VITE_API_URL=http://localhost:3000
 
 ## Typical Workflow
 
-1️⃣ Run Python ETL to build/update the database.
-2️⃣ Start Node backend to serve the API.
-3️⃣ Start Vue frontend to view the dashboard.
+1️⃣ Start Node backend to serve the API.
+2️⃣ Start Vue frontend to view the dashboard.
+3️⃣ (Occasionally) Run Python ETL to refresh the database.
 
 ---
 
@@ -131,9 +147,9 @@ The backend serves the following routes (examples):
 
 ## Notes
 
-* Database: SQLite, stored at `Backend/database/crime_data.db`
+* Database: SQLite, stored at `database/crime_data.db`
 * Frontend expects the backend API running at `http://localhost:3000`
-* Recommended workflow: ETL → Backend → Frontend
+* Recommended workflow: Backend → Frontend (ETL only when refreshing data)
 
 ---
 

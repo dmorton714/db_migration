@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOG_DIR="$ROOT_DIR/.run"
+DATA_DIR="$ROOT_DIR/data"
+DB_DIR="$ROOT_DIR/database"
+SQLITE_DB="$DB_DIR/crime_data.db"
+BACKEND_LOG="$LOG_DIR/backend.log"
+FRONTEND_LOG="$LOG_DIR/frontend.log"
+FRONTEND_PORT="${VITE_PORT:-}"
+
+usage() {
+  echo "Usage: ./ReportShooting/build"
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+port_is_busy() {
+  local port="$1"
+
+  if command_exists lsof; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+  else
+    return 1
+  fi
+}
+
+pick_frontend_port() {
+  local port
+
+  if [[ -n "$FRONTEND_PORT" ]]; then
+    echo "$FRONTEND_PORT"
+    return
+  fi
+
+  for port in 5173 5174 5175 5176 5177 5178 5179 5180; do
+    if ! port_is_busy "$port"; then
+      echo "$port"
+      return
+    fi
+  done
+
+  echo "No free Vue dev-server port found between 5173 and 5180." >&2
+  exit 1
+}
+
+pick_python() {
+  if [[ -x "$ROOT_DIR/venv/bin/python" ]]; then
+    echo "$ROOT_DIR/venv/bin/python"
+  elif [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+    echo "$ROOT_DIR/.venv/bin/python"
+  elif command_exists python3; then
+    echo "python3"
+  elif command_exists python; then
+    echo "python"
+  else
+    echo "Python is required but was not found." >&2
+    exit 1
+  fi
+}
+
+install_node_dependencies() {
+  local dir="$1"
+
+  if [[ ! -d "$dir/node_modules" ]]; then
+    echo "Installing Node dependencies in $dir..."
+    npm --prefix "$dir" install
+  fi
+}
+
+start_background() {
+  local name="$1"
+  local log_file="$2"
+  shift 2
+
+  echo "Starting $name..."
+  nohup "$@" >"$log_file" 2>&1 &
+  echo "$!" >"$LOG_DIR/$name.pid"
+  echo "$name log: $log_file"
+}
+
+start_background_in_dir() {
+  local name="$1"
+  local log_file="$2"
+  local dir="$3"
+  shift 3
+
+  echo "Starting $name..."
+  (
+    cd "$dir"
+    nohup "$@" >"$log_file" 2>&1 &
+    echo "$!" >"$LOG_DIR/$name.pid"
+  )
+  echo "$name log: $log_file"
+}
+
+start_launchctl() {
+  local name="$1"
+  local label="local.reportshooting.$name"
+  shift
+
+  echo "Starting $name..."
+  launchctl remove "$label" >/dev/null 2>&1 || true
+  launchctl submit -l "$label" -- "$@"
+  echo "$label" >"$LOG_DIR/$name.launchctl"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ $# -gt 0 ]]; then
+  usage >&2
+  exit 1
+fi
+
+mkdir -p "$LOG_DIR" "$DB_DIR"
+
+echo "Deleting existing local data..."
+rm -rf "$DATA_DIR"
+rm -f "$SQLITE_DB"
+mkdir -p "$DATA_DIR" "$DB_DIR"
+
+PYTHON_BIN="$(pick_python)"
+NODE_BIN="$(command -v node)"
+NPM_BIN="$(command -v npm)"
+FRONTEND_PORT="$(pick_frontend_port)"
+
+if [[ -z "$NODE_BIN" || -z "$NPM_BIN" ]]; then
+  echo "Node.js and npm are required but were not found." >&2
+  exit 1
+fi
+
+NPM_CLI="$NPM_BIN"
+if [[ -L "$NPM_BIN" ]]; then
+  NPM_TARGET="$(readlink "$NPM_BIN")"
+  if [[ "$NPM_TARGET" = /* ]]; then
+    NPM_CLI="$NPM_TARGET"
+  else
+    NPM_CLI="$(cd "$(dirname "$NPM_BIN")/$(dirname "$NPM_TARGET")" && pwd)/$(basename "$NPM_TARGET")"
+  fi
+fi
+
+echo "Running API extract and ETL cleanup..."
+(
+  cd "$ROOT_DIR"
+  PYTHONPATH="$ROOT_DIR/ETLpipeline" "$PYTHON_BIN" "$ROOT_DIR/ETLpipeline/etlPipeline.py"
+)
+
+if command_exists docker; then
+  echo "Starting MySQL server..."
+  docker compose -f "$ROOT_DIR/MySQL/docker-compose.yml" up -d
+  echo "MySQL: localhost:${MYSQL_PORT:-3307}"
+else
+  echo "Skipping MySQL startup: docker was not found." >&2
+fi
+
+install_node_dependencies "$ROOT_DIR"
+install_node_dependencies "$ROOT_DIR/ReportShooting"
+
+if [[ "$(uname -s)" == "Darwin" ]] && command_exists launchctl; then
+  start_launchctl "backend" "$NODE_BIN" "$ROOT_DIR/Backend/server.js"
+  start_launchctl "frontend" "$NODE_BIN" "$NPM_CLI" --prefix "$ROOT_DIR/ReportShooting" run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT"
+else
+  start_background_in_dir "backend" "$BACKEND_LOG" "$ROOT_DIR/Backend" "$NODE_BIN" server.js
+  start_background "frontend" "$FRONTEND_LOG" "$NPM_BIN" --prefix "$ROOT_DIR/ReportShooting" run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT"
+fi
+
+echo
+echo "Build complete."
+echo "MySQL: localhost:${MYSQL_PORT:-3307}"
+echo "Backend: http://localhost:3000"
+echo "Vue site: http://localhost:$FRONTEND_PORT"

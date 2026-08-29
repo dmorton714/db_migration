@@ -28,7 +28,7 @@ const props = defineProps({
 const chartCanvas = ref(null)
 let chartInstance = null
 
-const selectedYearComparison = ref(null)
+const compareYears = ref([])
 const selectedCrimeType = ref("All")
 const datasets = ref({})
 const yearOptions = ref([])
@@ -65,7 +65,12 @@ async function loadMonthlyData() {
 
     // Dropdowns
     yearOptions.value = Object.keys(datasetsObj).sort().reverse()
-    if (!selectedYearComparison.value) selectedYearComparison.value = yearOptions.value[0]
+
+    // Default to the most recent year, excluding the master year (2 years total)
+    if (!compareYears.value.length) {
+      const other = yearOptions.value.find(y => y !== props.selectedYearMaster)
+      if (other) compareYears.value = [other]
+    }
 
     const typesSet = new Set(data.map(r => r.Crime_Type))
     crimeTypes.value = ["All", ...Array.from(typesSet).sort()]
@@ -103,14 +108,17 @@ function renderChart() {
 
   const louBlue = "#1D1E9E"
   const louGold = "#DBA64C"
-  const greyLine = "rgba(194,194,194,0.4)"
-  const greyPoint = "rgba(194,194,194,0.3)"
   const masterYear = props.selectedYearMaster
+
+  const compareColors = [louGold, "#2E8B57", "#B23A48", "#7A5195"]
 
   const ds = []
   Object.entries(datasets.value).forEach(([year, points]) => {
     const isMaster = year === masterYear
-    const isCompare = !isMaster && year === selectedYearComparison.value
+    const compareIndex = compareYears.value.indexOf(year)
+    if (!isMaster && compareIndex === -1) return // ponytail: only draw years the user opted into
+
+    const color = isMaster ? louBlue : compareColors[compareIndex % compareColors.length]
 
     ds.push({
       label: year,
@@ -119,8 +127,8 @@ function renderChart() {
       tension: 0.25,
       borderWidth: 2,
       pointRadius: 5,
-      borderColor: isMaster ? louBlue : isCompare ? louGold : greyLine,
-      backgroundColor: isMaster ? louBlue : isCompare ? louGold : greyPoint
+      borderColor: color,
+      backgroundColor: color
     })
 
     if (isMaster) {
@@ -174,7 +182,9 @@ function renderChart() {
 }
 
 // ---- Watchers ----
-watch([selectedYearComparison, selectedCrimeType, () => props.selectedYearMaster], loadMonthlyData)
+watch(selectedCrimeType, loadMonthlyData)
+watch(() => props.selectedYearMaster, loadMonthlyData)
+watch(compareYears, renderChart, { deep: true })
 
 // ---- On mounted ----
 onMounted(loadMonthlyData)
@@ -182,9 +192,13 @@ onMounted(loadMonthlyData)
 
 <template>
   <div>
-    <select v-model="selectedYearComparison">
-      <option v-for="y in yearOptions" :key="y">{{ y }}</option>
-    </select>
+    <div class="compare-years">
+      <span>Compare:</span>
+      <label v-for="y in yearOptions.filter(y => y !== selectedYearMaster)" :key="y">
+        <input type="checkbox" :value="y" v-model="compareYears" />
+        {{ y }}
+      </label>
+    </div>
 
     <select v-model="selectedCrimeType">
       <option v-for="c in crimeTypes" :key="c">{{ c }}</option>
@@ -203,6 +217,15 @@ onMounted(loadMonthlyData)
   display: flex;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+.compare-years {
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-right: 1rem;
+}
+.compare-years label {
+  font-weight: 400;
 }
 label {
   font-weight: 600;

@@ -16,6 +16,23 @@ const selectedYear = ref(null)
 const shootingTypes = ref([])
 const neighborhoodsData = ref([])
 
+const months = [
+  { value: null, label: "All" },
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" }
+]
+const selectedMonth = ref(null)
+
 const isLoading = ref(false)
 const error = ref(null)
 
@@ -45,7 +62,10 @@ async function loadShootings() {
   error.value = null
 
   try {
-    const res = await fetch(`${API_BASE}/shootings?year=${selectedYear.value}`)
+    const url = new URL(`${API_BASE}/shootings`)
+    url.searchParams.set('year', selectedYear.value)
+    if (selectedMonth.value) url.searchParams.set('month', selectedMonth.value)
+    const res = await fetch(url)
     shootings.value = await res.json()
   } catch (e) {
     error.value = "Failed to load shootings data"
@@ -56,7 +76,9 @@ async function loadShootings() {
 
 async function loadShootingTypes() {
   try {
-    const res = await fetch(`${API_BASE}/shootingtype`)
+    const url = new URL(`${API_BASE}/shootingtype`)
+    if (selectedMonth.value) url.searchParams.set('month', selectedMonth.value)
+    const res = await fetch(url)
     shootingTypes.value = await res.json()
   } catch (e) {
     console.error('Failed to load shooting type data', e)
@@ -65,7 +87,9 @@ async function loadShootingTypes() {
 
 async function loadNeighborhoods() {
   try {
-    const res = await fetch(`${API_BASE}/neighborhoods`)
+    const url = new URL(`${API_BASE}/neighborhoods`)
+    if (selectedMonth.value) url.searchParams.set('month', selectedMonth.value)
+    const res = await fetch(url)
     neighborhoodsData.value = await res.json()
   } catch (e) {
     console.error('Failed to load neighborhoods data', e)
@@ -76,7 +100,10 @@ const neighborhoodData = ref([])
 
 async function loadNeighborhoodBreakdown(year) {
   try {
-    const res = await fetch(`${API_BASE}/neighborhood-breakdown?year=${year}`)
+    const url = new URL(`${API_BASE}/neighborhood-breakdown`)
+    url.searchParams.set('year', year)
+    if (selectedMonth.value) url.searchParams.set('month', selectedMonth.value)
+    const res = await fetch(url)
     neighborhoodData.value = await res.json()
   } catch (e) {
     console.error("Failed to load neighborhood breakdown", e)
@@ -97,6 +124,13 @@ onMounted(async () => {
 watch(selectedYear, (newYear) => {
   loadShootings(newYear)
   loadNeighborhoodBreakdown(newYear)
+})
+
+watch(selectedMonth, () => {
+  loadShootings()
+  loadShootingTypes()
+  loadNeighborhoods()
+  loadNeighborhoodBreakdown(selectedYear.value)
 })
 
 // --------------------
@@ -149,6 +183,11 @@ const shootingColumns = [
         <label for="year">Select Year:</label>
         <select id="year" v-model="selectedYear">
           <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+        </select>
+
+        <label for="month">Month:</label>
+        <select id="month" v-model="selectedMonth">
+          <option v-for="m in months" :key="m.label" :value="m.value">{{ m.label }}</option>
         </select>
       </div>
       <p v-if="isLoading">Loading data…</p>
